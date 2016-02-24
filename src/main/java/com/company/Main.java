@@ -1,17 +1,16 @@
 package com.company;
 
 
+
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.*;
+import java.util.concurrent.*;
 
 
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class.getName());
+    private static final ExecutorService threads = Executors.newFixedThreadPool(10);
 
     public static void main(String[] args) {
         try {
@@ -23,6 +22,8 @@ public class Main {
         try {
             RunTest();
         } catch (InterruptedException e) {
+            logger.error(e.getMessage());
+        } catch (ExecutionException e) {
             logger.error(e.getMessage());
         }
     }
@@ -57,7 +58,7 @@ public class Main {
         logger.info("\nNumbers: " + numbers + "\n");
     }
 
-    private static void RunTest() throws InterruptedException {
+    private static void RunTest() throws InterruptedException, ExecutionException {
         final ArrayList<int[]> massives = new ArrayList<int[]>();
         for(int i = 0; i<5;i++){
             int[] mass = new int[10];
@@ -72,10 +73,22 @@ public class Main {
 
         int result = 0;
 
-        HashMap<Thread, SumClass> threads = new HashMap<Thread, SumClass>();
+        List<Future> results = new ArrayList<Future>();
+        for(int i = 0; i<massives.size();i++) {
+            Future future = threads.submit(new SumClass(massives.get(i)));
+            results.add(future);
+        }
+
+        for(Future f : results)
+            result+=(int)f.get();
+
+        threads.shutdown();
+
+       /* HashMap<Thread, SumClass> threads = new HashMap<Thread, SumClass>();
         for(int i = 0; i<massives.size();i++) {
             SumClass sumClass = new SumClass(massives.get(i));
-            Thread thread = new Thread(sumClass);
+            Thread thread = new Thread();
+
             threads.put(thread, sumClass);
             thread.start();
 
@@ -84,8 +97,7 @@ public class Main {
         for(Map.Entry<Thread, SumClass> thread : threads.entrySet()){
             thread.getKey().join();
             result+=thread.getValue().getResult();
-        }
-        logger.info(result);
-
+        }*/
+        logger.info("Result of all calculations = "+result);
     }
 }
